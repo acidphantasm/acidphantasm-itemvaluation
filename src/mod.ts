@@ -16,6 +16,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 {
     private static container: DependencyContainer;
     private static rairaiAmmoStats: boolean;
+    private static liveFleaPrices: boolean;
     private static modConfig: Config = require("../config/config.json");
     private static localeTable;
     private static originalLocaleTable;
@@ -30,6 +31,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         const preSptModLoader: PreSptModLoader = container.resolve<PreSptModLoader>("PreSptModLoader");
         const logger = container.resolve<ILogger>("WinstonLogger");
         ItemValuation.rairaiAmmoStats = preSptModLoader.getImportedModsNames().includes("rairaitheraichu-ammostats");
+        ItemValuation.liveFleaPrices = preSptModLoader.getImportedModsNames().includes("zzDrakiaXYZ-LiveFleaPrices");
 
         if (!ItemValuation.isColourConverterInstalled())
         {
@@ -56,17 +58,18 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
         if (!await ItemValuation.setPriceColouration(updateColours, firstUpdate))
         {
-            console.log("Update failed")
+            console.log("[Item Valuation] Something failed.")
             return;
         }
 
-        ItemValuation.updateTimer = setInterval(ItemValuation.setPriceColouration, (60 * 60.1 * 1000));
+        if (ItemValuation.liveFleaPrices)
+        {
+            ItemValuation.updateTimer = setInterval(ItemValuation.setPriceColouration, (60 * 60.1 * 1000));
+        }
     }
 
     static async setPriceColouration(updateColours = true, firstUpdate = false): Promise<boolean>
     {
-        const start = performance.now();
-
         const databaseServer = ItemValuation.container.resolve<DatabaseServer>("DatabaseServer");
         const ragfairServerHelper = ItemValuation.container.resolve<RagfairServerHelper>("RagfairServerHelper");
         const ragfairConfig = ItemValuation.container.resolve<ConfigServer>("ConfigServer").getConfig(ConfigTypes.RAGFAIR) as IRagfairConfig;
@@ -79,7 +82,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         if (updateColours)
         {
             ItemValuation.nextUpdate = Math.floor(Date.now() / 1000) + 3606;
-            console.log("[ItemValuation] Updating Items" + ` ${firstUpdate ? "for the first time" : ""}`);
+            console.log("[ItemValuation] Updating item information");
             ItemValuation.updateNumber++
         }
         for (const item in itemTable)
@@ -157,8 +160,6 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
             if (addDescription) ItemValuation.addPriceToLocales(descriptionPrice, validFleaItem, itemDetails[1]._id, perSlotDescription);
             itemTable[item]._props.BackgroundColor = newBackgroundColour;
         }
-        const timeTaken = performance.now() - start;
-        console.log(`[ItemValuation] Update took ${timeTaken.toFixed(2)}`)
         return true;
     }
     private static getItemColour(pricePerSlot: number, availableOnFlea: boolean): string
