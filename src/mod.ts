@@ -33,7 +33,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
         if (!ItemValuation.isColourConverterInstalled())
         {
-            logger.error("ColorConverterAPI not found. [Item Valuation] not loaded.");
+            logger.error("[Item Valuation] not loaded. ColorConverterAPI not found. Please read the mod page for dependencies.");
             return;
         }
     }
