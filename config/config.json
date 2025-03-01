@@ -1,0 +1,34 @@
+{    
+    "colourFleaBannedItems": true,
+    "colourNormalItems": true,
+    "colourWeapons": true,
+    "colourAmmo": true,
+    
+    "badItemPerSlotMaxValue": 3000,
+    "badWeaponMaxValue": 10000,
+    "badAmmoMaxValue": 100,
+    "badColour": "#404040",
+    
+    "poorItemPerSlotMaxValue": 7000,
+    "poorWeaponMaxValue": 20000,
+    "poorAmmoMaxValue": 250,
+    "poorColour": "#a3a3a3",
+
+    "fairItemPerSlotMaxValue": 12500,
+    "fairWeaponMaxValue": 40000,
+    "fairAmmoMaxValue": 500,
+    "fairColour": "#0c3b08",
+
+    "goodItemPerSlotMaxValue": 17500,
+    "goodWeaponMaxValue": 60000,
+    "goodAmmoMaxValue": 750,
+    "goodColour": "#08083b",
+
+    "veryGoodItemPerSlotMaxValue": 25000,
+    "veryGoodWeaponMaxValue": 80000,
+    "veryGoodAmmoMaxValue": 1000,
+    "veryGoodColour": "#590b5e",
+
+    "exceptionalColour": "#5e470b",
+    "fleaBannedColour": "#5e0b19"
+}
