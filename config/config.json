@@ -16,7 +16,7 @@
     "veryGoodAmmoMaxPen": 54,
     
     "colourWeapons": true,
-    "colourFleaBannedWeapons": true,
+    "colourFleaBannedWeapons": false,
     "badWeaponMaxValue": 20000,
     "poorWeaponMaxValue": 40000,
     "fairWeaponMaxValue": 60000,
@@ -24,7 +24,7 @@
     "veryGoodWeaponMaxValue": 100000,
 
     "colourArmours": true,
-    "colourFleaBannedArmour": true,
+    "colourFleaBannedArmour": false,
     "badArmorMaxPlates": 1,
     "poorArmorMaxPlates": 2,
     "fairArmorMaxPlates": 3,
