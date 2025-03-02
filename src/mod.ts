@@ -20,6 +20,8 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
     private static rairaiAmmoStats: boolean;
     private static liveFleaPrices: boolean;
+    private static realism: boolean;
+    private static colorConverter: boolean;
 
     private static fs = require("fs");
     private static modConfig: Config = require("../config/config.json");
@@ -57,11 +59,18 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         const logger = container.resolve<ILogger>("WinstonLogger");
         ItemValuation.rairaiAmmoStats = preSptModLoader.getImportedModsNames().includes("rairaitheraichu-ammostats");
         ItemValuation.liveFleaPrices = preSptModLoader.getImportedModsNames().includes("zzDrakiaXYZ-LiveFleaPrices");
+        ItemValuation.realism = preSptModLoader.getImportedModsNames().includes("SPT-Realism");
 
         if (!ItemValuation.isColourConverterInstalled())
         {
-            logger.error("[Item Valuation] not loaded. ColorConverterAPI not found. Please read the mod page for dependencies.");
-            return;
+            ItemValuation.modConfig.badColour = ItemValuation.colorConverter ? ItemValuation.modConfig.badColour : "grey";
+            ItemValuation.modConfig.poorColour = ItemValuation.colorConverter ? ItemValuation.modConfig.poorColour :  "default";
+            ItemValuation.modConfig.fairColour = ItemValuation.colorConverter ? ItemValuation.modConfig.fairColour :  "green";
+            ItemValuation.modConfig.goodColour = ItemValuation.colorConverter ? ItemValuation.modConfig.goodColour :  "blue";
+            ItemValuation.modConfig.veryGoodColour = ItemValuation.colorConverter ? ItemValuation.modConfig.veryGoodColour :  "violet";
+            ItemValuation.modConfig.exceptionalColour = ItemValuation.colorConverter ? ItemValuation.modConfig.exceptionalColour :  "yellow";
+            ItemValuation.modConfig.fleaBannedColour = ItemValuation.colorConverter ? ItemValuation.modConfig.fleaBannedColour :  "tracerRed";
+            console.log("[ItemValuation] ColorConverterAPI not found. If you want custom colours, install ColorConverterAPI.")
         }
     }
 
@@ -190,7 +199,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
             }
             else if (itemHelper.isOfBaseclass(item, BaseClasses.MONEY))
             {
-                newBackgroundColour = "#000000";
+                newBackgroundColour = "black";
             }
             else
             {
@@ -226,15 +235,26 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         return ItemValuation.modConfig.exceptionalColour;
     }
 
-    private static getArmourColour(price: number, availableOnFlea: boolean): string
+    private static getArmourColour(armorClass: number, availableOnFlea: boolean): string
     {
         if (ItemValuation.modConfig.colourFleaBannedArmour && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
         if (!ItemValuation.modConfig.colourArmours) return "";
-        if (price <= ItemValuation.modConfig.badArmorMaxPlates) return ItemValuation.modConfig.badColour;
-        if (price <= ItemValuation.modConfig.poorArmorMaxPlates) return ItemValuation.modConfig.poorColour;
-        if (price <= ItemValuation.modConfig.fairArmorMaxPlates) return ItemValuation.modConfig.fairColour;
-        if (price <= ItemValuation.modConfig.goodArmorMaxPlates) return ItemValuation.modConfig.goodColour;
-        if (price <= ItemValuation.modConfig.veryGoodArmorMaxPlates) return ItemValuation.modConfig.veryGoodColour;
+
+        
+        if (ItemValuation.realism)
+        {
+            if (armorClass <= 1) return ItemValuation.modConfig.badColour;
+            if (armorClass <= 3) return ItemValuation.modConfig.poorColour;
+            if (armorClass <= 5) return ItemValuation.modConfig.fairColour;
+            if (armorClass <= 7) return ItemValuation.modConfig.goodColour;
+            if (armorClass <= 9) return ItemValuation.modConfig.veryGoodColour;
+        }
+
+        if (armorClass <= ItemValuation.modConfig.badArmorMaxPlates) return ItemValuation.modConfig.badColour;
+        if (armorClass <= ItemValuation.modConfig.poorArmorMaxPlates) return ItemValuation.modConfig.poorColour;
+        if (armorClass <= ItemValuation.modConfig.fairArmorMaxPlates) return ItemValuation.modConfig.fairColour;
+        if (armorClass <= ItemValuation.modConfig.goodArmorMaxPlates) return ItemValuation.modConfig.goodColour;
+        if (armorClass <= ItemValuation.modConfig.veryGoodArmorMaxPlates) return ItemValuation.modConfig.veryGoodColour;
         return ItemValuation.modConfig.exceptionalColour;
     }
     
@@ -254,6 +274,16 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
     {
         if (ItemValuation.modConfig.colourFleaBannedAmmo && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
         if (!ItemValuation.modConfig.colourAmmo) return "";
+
+        if (ItemValuation.realism)
+        {
+            if (pen <= 10) return ItemValuation.modConfig.badColour;
+            if (pen <= 30) return ItemValuation.modConfig.poorColour;
+            if (pen <= 50) return ItemValuation.modConfig.fairColour;
+            if (pen <= 70) return ItemValuation.modConfig.goodColour;
+            if (pen <= 90) return ItemValuation.modConfig.veryGoodColour;
+        }
+
         if (pen <= ItemValuation.modConfig.badAmmoMaxPen) return ItemValuation.modConfig.badColour;
         if (pen <= ItemValuation.modConfig.poorAmmoMaxPen) return ItemValuation.modConfig.poorColour;
         if (pen <= ItemValuation.modConfig.fairAmmoMaxPen) return ItemValuation.modConfig.fairColour;
@@ -289,7 +319,8 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         try 
         {
             const pluginList = ItemValuation.fs.readdirSync("./BepInEx/plugins").map(plugin => plugin.toLowerCase());
-            return pluginList.includes(pluginName);
+            ItemValuation.colorConverter = pluginList.includes(pluginName);
+            return ItemValuation.colorConverter;
         }
         catch 
         {
