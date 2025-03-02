@@ -209,8 +209,8 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
                 perSlotDescription = true;
             }
 
-            if (!newBackgroundColour) continue;
             if (addDescription) ItemValuation.addPriceToLocales(descriptionPrice, validFleaItem, item, perSlotDescription);
+            if (!newBackgroundColour) continue;
             itemTable[item]._props.BackgroundColor = newBackgroundColour;
             ItemValuation.itemsUpdated++;
         }
