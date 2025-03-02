@@ -1,34 +1,42 @@
-{    
-    "colourFleaBannedItems": true,
+{
     "colourNormalItems": true,
-    "colourWeapons": true,
+    "colourFleaBannedItems": true,
+    "badItemPerSlotMaxValue": 5000,
+    "poorItemPerSlotMaxValue": 10000,
+    "fairItemPerSlotMaxValue": 15000,
+    "goodItemPerSlotMaxValue": 25000,
+    "veryGoodItemPerSlotMaxValue": 35000,
+
     "colourAmmo": true,
+    "colourFleaBannedAmmo": false,
+    "badAmmoMaxPen": 15,
+    "poorAmmoMaxPen": 26,
+    "fairAmmoMaxPen": 35,
+    "goodAmmoMaxPen": 44,
+    "veryGoodAmmoMaxPen": 54,
     
-    "badItemPerSlotMaxValue": 3000,
-    "badWeaponMaxValue": 10000,
-    "badAmmoMaxValue": 100,
+    "colourWeapons": true,
+    "colourFleaBannedWeapons": false,
+    "badWeaponMaxValue": 20000,
+    "poorWeaponMaxValue": 40000,
+    "fairWeaponMaxValue": 60000,
+    "goodWeaponMaxValue": 80000,
+    "veryGoodWeaponMaxValue": 100000,
+
+    "colourArmours": true,
+    "colourFleaBannedArmour": false,
+    "badArmorMaxPlates": 1,
+    "poorArmorMaxPlates": 2,
+    "fairArmorMaxPlates": 3,
+    "goodArmorMaxPlates": 4,
+    "veryGoodArmorMaxPlates": 5,
+
     "badColour": "#404040",
-    
-    "poorItemPerSlotMaxValue": 7000,
-    "poorWeaponMaxValue": 20000,
-    "poorAmmoMaxValue": 250,
     "poorColour": "#a3a3a3",
-
-    "fairItemPerSlotMaxValue": 12500,
-    "fairWeaponMaxValue": 40000,
-    "fairAmmoMaxValue": 500,
     "fairColour": "#0c3b08",
-
-    "goodItemPerSlotMaxValue": 17500,
-    "goodWeaponMaxValue": 60000,
-    "goodAmmoMaxValue": 750,
     "goodColour": "#08083b",
-
-    "veryGoodItemPerSlotMaxValue": 25000,
-    "veryGoodWeaponMaxValue": 80000,
-    "veryGoodAmmoMaxValue": 1000,
     "veryGoodColour": "#590b5e",
-
     "exceptionalColour": "#5e470b",
-    "fleaBannedColour": "#5e0b19"
+
+    "fleaBannedColour": "#660415"
 }
