@@ -268,7 +268,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         {
             const priceType = perSlotDescription ? "Price Per Slot:" : "Price:"
             const originalDescription = ItemValuation.originalLocaleTable[locale][`${itemID} Description`]; 
-            ItemValuation.localeTable[locale][`${itemID} Description`] = `${priceType} ${ItemValuation.formatToRoubles(price)} | Flea Banned: ${availableOnFlea ? "No" : "Yes"} | Update: ${ItemValuation.updateNumber}\n\n` + originalDescription;
+            ItemValuation.localeTable[locale][`${itemID} Description`] = `${priceType} ${ItemValuation.formatToRoubles(price)} | ${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n` + originalDescription;
         }
     }
 
