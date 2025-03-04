@@ -167,12 +167,26 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
                 descriptionPrice = price;
                 addDescription = true;
             } 
+            else if (itemHelper.isOfBaseclass(item, BaseClasses.KEY))
+            {
+                newBackgroundColour = ItemValuation.getKeyColour(price, validFleaItem);
+                descriptionPrice = price;
+                addDescription = true;
+            } 
             else if (itemHelper.isOfBaseclasses(item, [BaseClasses.ARMORED_EQUIPMENT, BaseClasses.VEST]))
             {
                 if (itemTable[item]._props.armorClass == 0)
                 {
                     const itemSlots = itemTable[item]._props.Slots;
-                    if (itemSlots.length === 0) continue;
+                    if (itemSlots.length === 0)
+                    {
+                        newBackgroundColour = ItemValuation.getItemColour(pricePerSlot, validFleaItem);
+                        ItemValuation.addPriceToLocales(pricePerSlot, validFleaItem, item, true);
+                        if (!newBackgroundColour) continue;
+                        itemTable[item]._props.BackgroundColor = newBackgroundColour;
+                        ItemValuation.itemsUpdated++;
+                        continue;
+                    }
                     const compatiblePlateTplPool = [];
 
                     for (const slot in itemSlots)
@@ -232,6 +246,18 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         if (pricePerSlot < ItemValuation.modConfig.fairItemPerSlotMaxValue) return ItemValuation.modConfig.fairColour;
         if (pricePerSlot < ItemValuation.modConfig.goodItemPerSlotMaxValue) return ItemValuation.modConfig.goodColour;
         if (pricePerSlot < ItemValuation.modConfig.veryGoodItemPerSlotMaxValue) return ItemValuation.modConfig.veryGoodColour;
+        return ItemValuation.modConfig.exceptionalColour;
+    }
+
+    private static getKeyColour(pricePerSlot: number, availableOnFlea: boolean): string
+    {
+        if (ItemValuation.modConfig.colourFleaBannedKeys && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
+        if (!ItemValuation.modConfig.colourKeys) return "";
+        if (pricePerSlot < ItemValuation.modConfig.badKeyMaxValue) return ItemValuation.modConfig.badColour;
+        if (pricePerSlot < ItemValuation.modConfig.poorKeyMaxValue) return ItemValuation.modConfig.poorColour;
+        if (pricePerSlot < ItemValuation.modConfig.fairKeyMaxValue) return ItemValuation.modConfig.fairColour;
+        if (pricePerSlot < ItemValuation.modConfig.goodKeyMaxValue) return ItemValuation.modConfig.goodColour;
+        if (pricePerSlot < ItemValuation.modConfig.veryGoodKeyMaxValue) return ItemValuation.modConfig.veryGoodColour;
         return ItemValuation.modConfig.exceptionalColour;
     }
 
@@ -352,6 +378,14 @@ interface Config
     fairItemPerSlotMaxValue: number,
     goodItemPerSlotMaxValue: number,
     veryGoodItemPerSlotMaxValue: number,
+
+    colourKeys: boolean,
+    colourFleaBannedKeys: boolean,
+    badKeyMaxValue: number,
+    poorKeyMaxValue: number,
+    fairKeyMaxValue: number,
+    goodKeyMaxValue: number,
+    veryGoodKeyMaxValue: number,
 
     colourAmmo: boolean,
     colourFleaBannedAmmo: boolean,
