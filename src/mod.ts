@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { DependencyContainer } from "tsyringe";
 
 import { IPostDBLoadModAsync } from "@spt/models/external/IPostDBLoadModAsync";
@@ -13,6 +14,13 @@ import { ConfigServer } from "@spt/servers/ConfigServer";
 import { ILogger } from "@spt/models/spt/utils/ILogger";
 import { MinMax } from "@spt/models/common/MinMax";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
+import { Traders } from "@spt/models/enums/Traders";
+import { DatabaseService } from "@spt/services/DatabaseService";
+import { Money } from "@spt/models/enums/Money";
+import { HandbookHelper } from "@spt/helpers/HandbookHelper";
+import { RandomUtil } from "@spt/utils/RandomUtil";
+import { PresetHelper } from "@spt/helpers/PresetHelper";
+import { PresetController } from "@spt/controllers/PresetController";
 
 class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 {
@@ -29,6 +37,22 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
     private static localeTable;
     private static originalLocaleTable;
     private static originalPriceTable;
+
+    private static highestTraderPriceItems: TraderPriceTable = {
+        itemID:  {
+            traderPrice: 0,
+            traderName: ""
+        }
+    };
+
+    private static bannedBaseClasses = [
+        BaseClasses.LOOT_CONTAINER,
+        BaseClasses.STASH,
+        BaseClasses.POCKETS,
+        BaseClasses.RANDOM_LOOT_CONTAINER,
+        BaseClasses.BUILT_IN_INSERTS,
+        BaseClasses.HIDEOUT_AREA_CONTAINER
+    ]
 
     private static updateTimer: NodeJS.Timeout;
     private static updateNumber: number = 0;
@@ -70,12 +94,14 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
             ItemValuation.modConfig.veryGoodColour = ItemValuation.colorConverter ? ItemValuation.modConfig.veryGoodColour :  "violet";
             ItemValuation.modConfig.exceptionalColour = ItemValuation.colorConverter ? ItemValuation.modConfig.exceptionalColour :  "yellow";
             ItemValuation.modConfig.fleaBannedColour = ItemValuation.colorConverter ? ItemValuation.modConfig.fleaBannedColour :  "tracerRed";
-            console.log("[ItemValuation] ColorConverterAPI not found. If you want custom colours, install ColorConverterAPI.")
+            logger.error("[ItemValuation] ColorConverterAPI not found. If you want custom colours, install ColorConverterAPI.")
         }
     }
 
     public async postDBLoadAsync(container: DependencyContainer): Promise<void>
     {
+        container.resolve<PresetController>("PresetController").initialize();
+        
         await ItemValuation.delay(1500);
 
         ItemValuation.container = container;
@@ -84,7 +110,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
         await ItemValuation.setPriceColouration(true);
 
-        if (ItemValuation.liveFleaPrices)
+        if (ItemValuation.liveFleaPrices && !ItemValuation.modConfig.useTraderPriceColours)
         {
             ItemValuation.updateTimer = setInterval(ItemValuation.setPriceColouration, (60 * 60 * 1000));
         }
@@ -113,7 +139,8 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
         for (const item in itemTable)
         {
-            if (itemHelper.isOfBaseclass(item, BaseClasses.LOOT_CONTAINER)) continue;
+            if (itemHelper.isOfBaseclasses(item, ItemValuation.bannedBaseClasses)) continue;
+            if (Object.values(BaseClasses).some((v) => v === item)) continue;
             if (!firstUpdate && ItemValuation.originalPriceTable[item] == priceTable[item]) continue;
 
             // If item is ammo, and ammo stats is installed, skip
@@ -138,6 +165,9 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
                     }
                 }
             }
+
+            const traderPriceInfo = ItemValuation.getHighestTraderPriceRouble(item);
+            if (ItemValuation.modConfig.useTraderPriceColours) price = traderPriceInfo.traderPrice;
 
             // Get item height & width, skip if not found, calculate the price per slot
             const height = itemTable[item]?._props?.Height;
@@ -181,7 +211,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
                     if (itemSlots.length === 0)
                     {
                         newBackgroundColour = ItemValuation.getItemColour(pricePerSlot, validFleaItem);
-                        ItemValuation.addPriceToLocales(pricePerSlot, validFleaItem, item, true);
+                        ItemValuation.addPriceToLocales(pricePerSlot, validFleaItem, item, true, traderPriceInfo);
                         if (!newBackgroundColour) continue;
                         itemTable[item]._props.BackgroundColor = newBackgroundColour;
                         ItemValuation.itemsUpdated++;
@@ -223,7 +253,10 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
                 perSlotDescription = true;
             }
 
-            if (addDescription) ItemValuation.addPriceToLocales(descriptionPrice, validFleaItem, item, perSlotDescription);
+            if (addDescription) 
+            {
+                ItemValuation.addPriceToLocales(descriptionPrice, validFleaItem, item, perSlotDescription, traderPriceInfo);
+            }
             if (!newBackgroundColour) continue;
             itemTable[item]._props.BackgroundColor = newBackgroundColour;
             ItemValuation.itemsUpdated++;
@@ -237,6 +270,111 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         ItemValuation.itemsUpdated = 0;
         return true;
     }
+
+    private static getHighestTraderPriceRouble(itemTpl: string): TraderPriceTableDetails
+    {
+        const databaseService = ItemValuation.container.resolve<DatabaseService>("DatabaseService");
+        const handbookHelper = ItemValuation.container.resolve<HandbookHelper>("HandbookHelper");
+        const itemHelper = ItemValuation.container.resolve<ItemHelper>("ItemHelper");
+        const randomUtil = ItemValuation.container.resolve<RandomUtil>("RandomUtil");
+        const presetHelper = ItemValuation.container.resolve<PresetHelper>("PresetHelper");
+        
+        if (ItemValuation.highestTraderPriceItems[itemTpl] != undefined) 
+        {
+            return ItemValuation.highestTraderPriceItems[itemTpl];
+        }
+
+        if (ItemValuation.highestTraderPriceItems[itemTpl] == undefined)
+        {
+            ItemValuation.highestTraderPriceItems[itemTpl] = {
+                traderPrice: 0,
+                traderName: ""
+            }
+        }
+        
+        const preset = presetHelper.getDefaultPreset(itemTpl);
+
+        // Find highest trader price for item
+        for (const traderName in Traders) 
+        {
+            // Get trader and check buy category allows tpl
+            const traderBase = databaseService.getTrader(Traders[traderName]).base;
+
+            // Skip traders that dont sell
+            if (!traderBase || !itemHelper.isOfBaseclasses(itemTpl, traderBase.items_buy.category)) continue;
+            if (traderBase._id == Traders.FENCE) continue;
+
+            // Get loyalty level details player has achieved with this trader
+            // Uses lowest loyalty level as this function is used before a player has logged into server
+            // We have no idea what player loyalty is with traders
+            const traderBuyBackPricePercent = 100 - traderBase.loyaltyLevels[0].buy_price_coef;
+
+            let itemHandbookPrice = handbookHelper.getTemplatePrice(itemTpl);
+            if (preset)
+            {
+                itemHandbookPrice = 0;
+                for (const item in preset._items)
+                {
+                    itemHandbookPrice += handbookHelper.getTemplatePrice(preset._items[item]._tpl)
+                }
+            }
+            const priceTraderBuysItemAt = Math.round(
+                randomUtil.getPercentOfValue(traderBuyBackPricePercent, itemHandbookPrice)
+            );
+
+            // Price from this trader is higher than highest found, update
+            if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice) 
+            {
+                ItemValuation.highestTraderPriceItems[itemTpl].traderPrice = priceTraderBuysItemAt;
+                ItemValuation.highestTraderPriceItems[itemTpl].traderName = traderBase.nickname;
+            }
+        }
+        if (ItemValuation.highestTraderPriceItems[itemTpl].traderPrice == 0) ItemValuation.getFenceFallback(itemTpl);
+
+        return ItemValuation.highestTraderPriceItems[itemTpl]
+    }
+
+    private static getFenceFallback(itemTpl: string)
+    {
+        const databaseService = ItemValuation.container.resolve<DatabaseService>("DatabaseService");
+        const handbookHelper = ItemValuation.container.resolve<HandbookHelper>("HandbookHelper");
+        const presetHelper = ItemValuation.container.resolve<PresetHelper>("PresetHelper");
+        const itemHelper = ItemValuation.container.resolve<ItemHelper>("ItemHelper");
+        const randomUtil = ItemValuation.container.resolve<RandomUtil>("RandomUtil");
+
+        // Get trader and check buy category allows tpl
+        const traderBase = databaseService.getTrader(Traders.FENCE).base;
+
+        // Skip traders that dont sell
+        if (!traderBase || !itemHelper.isOfBaseclasses(itemTpl, traderBase.items_buy.category)) return;
+
+        // Get loyalty level details player has achieved with this trader
+        // Uses lowest loyalty level as this function is used before a player has logged into server
+        // We have no idea what player loyalty is with traders
+        const traderBuyBackPricePercent = 100 - traderBase.loyaltyLevels[0].buy_price_coef;
+
+        const preset = presetHelper.getDefaultPreset(itemTpl);
+        let itemHandbookPrice = handbookHelper.getTemplatePrice(itemTpl);
+        if (preset)
+        {
+            itemHandbookPrice = 0;
+            for (const item in preset._items)
+            {
+                itemHandbookPrice += handbookHelper.getTemplatePrice(preset._items[item]._tpl)
+            }
+        }
+        const priceTraderBuysItemAt = Math.round(
+            randomUtil.getPercentOfValue(traderBuyBackPricePercent, itemHandbookPrice)
+        );
+
+        // Price from this trader is higher than highest found, update
+        if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice) 
+        {
+            ItemValuation.highestTraderPriceItems[itemTpl].traderPrice = priceTraderBuysItemAt;
+            ItemValuation.highestTraderPriceItems[itemTpl].traderName = traderBase.nickname;
+        }
+    }
+
     private static getItemColour(pricePerSlot: number, availableOnFlea: boolean): string
     {
         if (ItemValuation.modConfig.colourFleaBannedItems && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
@@ -317,14 +455,43 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         if (pen <= ItemValuation.modConfig.veryGoodAmmoMaxPen) return ItemValuation.modConfig.veryGoodColour;
         return ItemValuation.modConfig.exceptionalColour;
     }
-
-    private static addPriceToLocales(price: number, availableOnFlea: boolean, itemID: string, perSlotDescription = false): void
+    
+    private static addPriceToLocales(price: number, availableOnFlea: boolean, itemID: string, perSlotDescription = false, traderInfo: TraderPriceTableDetails): void
     {
+        const itemHelper = ItemValuation.container.resolve<ItemHelper>("ItemHelper");
         for (const locale in ItemValuation.localeTable)
         {
-            const priceType = perSlotDescription ? "Price Per Slot:" : "Price:"
+            const priceType = perSlotDescription ? "Per Slot:" : "Total:"
             const originalDescription = ItemValuation.originalLocaleTable[locale][`${itemID} Description`]; 
-            ItemValuation.localeTable[locale][`${itemID} Description`] = `${priceType} ${ItemValuation.formatToRoubles(price)} | ${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n` + originalDescription;
+            const newDescription = 
+                ItemValuation.modConfig.useTraderPriceColours && traderInfo.traderPrice > 0 
+                    ? `${priceType} ${ItemValuation.formatToRoubles(price)} @ ${traderInfo.traderName}\n${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n ${originalDescription}`
+                    : `${priceType} ${ItemValuation.formatToRoubles(price)} @ Flea ${traderInfo ? `\nTotal: ${ItemValuation.formatToRoubles(traderInfo.traderPrice)} @ ${traderInfo.traderName}` : ""}\n${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n ${originalDescription}`;
+
+            ItemValuation.localeTable[locale][`${itemID} Description`] = newDescription;
+
+            if (itemHelper.isOfBaseclass(itemID, BaseClasses.AMMO) && ItemValuation.modConfig.damageAndPenStatsInName)
+            {
+                const ammoDetails = itemHelper.getItem(itemID)
+                if (ammoDetails[0])
+                {
+                    const damage = ammoDetails[1]._props.Damage;
+                    const penetration = ammoDetails[1]._props.PenetrationPower;
+                    
+                    const originalName = ItemValuation.originalLocaleTable[locale][`${itemID} Name`];
+                    const newName = `${originalName} <color=#808080>[${damage}/${penetration}]</color>`;
+
+                    ItemValuation.localeTable[locale][`${itemID} Name`] = newName;
+
+                    if (ItemValuation.modConfig.damageAndPenStatsInShortName_warning_tiny)
+                    {
+                        const originalShortName = ItemValuation.originalLocaleTable[locale][`${itemID} ShortName`];
+                        const newShortName = `<sup><color=#FFFFFF>${damage}/${penetration}</color></sup> ${originalShortName}`;
+
+                        ItemValuation.localeTable[locale][`${itemID} ShortName`] = newShortName;
+                    }
+                }
+            }
         }
     }
 
@@ -356,7 +523,8 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
 
     private static getMinMaxArmorPlateClass(platePool: ITemplateItem[]): MinMax 
     {
-        platePool.sort((x, y) => {
+        platePool.sort((x, y) => 
+        {
             if (x._props.armorClass < y._props.armorClass) return -1;
             if (x._props.armorClass > y._props.armorClass) return 1;
             return 0;
@@ -369,8 +537,19 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
     }
 }
 
+interface TraderPriceTable
+{
+    itemID: TraderPriceTableDetails
+}
+interface TraderPriceTableDetails
+{
+    traderPrice: number,
+    traderName: string,
+}
 interface Config
 {
+    useTraderPriceColours: boolean,
+
     colourNormalItems: boolean,
     colourFleaBannedItems: boolean,
     badItemPerSlotMaxValue: number,
@@ -387,6 +566,8 @@ interface Config
     goodKeyMaxValue: number,
     veryGoodKeyMaxValue: number,
 
+    damageAndPenStatsInName: boolean,
+    damageAndPenStatsInShortName_warning_tiny: boolean,
     colourAmmo: boolean,
     colourFleaBannedAmmo: boolean,
     badAmmoMaxPen: number,
