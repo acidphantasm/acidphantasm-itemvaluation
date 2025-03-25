@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { DependencyContainer } from "tsyringe";
 
-import { IPostDBLoadModAsync } from "@spt/models/external/IPostDBLoadModAsync";
 import { DatabaseServer } from "@spt/servers/DatabaseServer";
 import { ItemHelper } from "@spt/helpers/ItemHelper";
 import { BaseClasses } from "@spt/models/enums/BaseClasses";
@@ -16,13 +15,13 @@ import { MinMax } from "@spt/models/common/MinMax";
 import { ITemplateItem } from "@spt/models/eft/common/tables/ITemplateItem";
 import { Traders } from "@spt/models/enums/Traders";
 import { DatabaseService } from "@spt/services/DatabaseService";
-import { Money } from "@spt/models/enums/Money";
 import { HandbookHelper } from "@spt/helpers/HandbookHelper";
 import { RandomUtil } from "@spt/utils/RandomUtil";
 import { PresetHelper } from "@spt/helpers/PresetHelper";
 import { PresetController } from "@spt/controllers/PresetController";
+import { IPostSptLoadModAsync } from "@spt/models/external/IPostSptLoadModAsync";
 
-class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
+class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
 {
     private static container: DependencyContainer;
 
@@ -98,7 +97,7 @@ class ItemValuation implements IPreSptLoadMod, IPostDBLoadModAsync
         }
     }
 
-    public async postDBLoadAsync(container: DependencyContainer): Promise<void>
+    public async postSptLoadAsync(container: DependencyContainer): Promise<void>
     {
         container.resolve<PresetController>("PresetController").initialize();
         
