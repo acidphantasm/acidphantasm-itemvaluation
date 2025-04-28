@@ -143,7 +143,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
             if (!firstUpdate && ItemValuation.originalPriceTable[item] == priceTable[item]) continue;
 
             // If item is ammo, and ammo stats is installed, skip
-            if (ItemValuation.rairaiAmmoStats && itemHelper.isOfBaseclass(item, BaseClasses.AMMO)) continue;
+            if (ItemValuation.rairaiAmmoStats && itemHelper.isOfBaseclasses(item, [BaseClasses.AMMO, BaseClasses.AMMO_BOX])) continue;
 
             // Get price, if not found - use handbook
             let price = priceTable[item];
@@ -189,9 +189,10 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
                 descriptionPrice = price;
                 addDescription = true;
             } 
-            else if (itemHelper.isOfBaseclass(item, BaseClasses.AMMO))
+            else if (itemHelper.isOfBaseclasses(item, [BaseClasses.AMMO, BaseClasses.AMMO_BOX]))
             {
-                const penetration = itemTable[item]._props.PenetrationPower;
+                let ammoItem = ItemValuation.getAmmoItem(itemTable[item], itemHelper);
+                const penetration = ammoItem._props.PenetrationPower;
                 newBackgroundColour = ItemValuation.getAmmoColour(penetration, validFleaItem);
                 descriptionPrice = price;
                 addDescription = true;
@@ -469,14 +470,15 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
 
             ItemValuation.localeTable[locale][`${itemID} Description`] = newDescription;
 
-            if (itemHelper.isOfBaseclass(itemID, BaseClasses.AMMO) && ItemValuation.modConfig.damageAndPenStatsInName)
+            if (itemHelper.isOfBaseclasses(itemID, [BaseClasses.AMMO, BaseClasses.AMMO_BOX]) && ItemValuation.modConfig.damageAndPenStatsInName)
             {
                 const ammoDetails = itemHelper.getItem(itemID)
                 if (ammoDetails[0])
                 {
-                    const damage = ammoDetails[1]._props.Damage;
-                    const penetration = ammoDetails[1]._props.PenetrationPower;
-                    
+                    let ammoItem = ItemValuation.getAmmoItem(ammoDetails[1], itemHelper);
+                    const damage = ammoItem._props.Damage;
+                    const penetration = ammoItem._props.PenetrationPower;
+
                     const originalName = ItemValuation.originalLocaleTable[locale][`${itemID} Name`];
                     const newName = `${originalName} <color=#808080>[${damage}/${penetration}]</color>`;
 
@@ -533,6 +535,19 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
             min: Number(platePool[0]._props.armorClass),
             max: Number(platePool[platePool.length - 1]._props.armorClass)
         };
+    }
+
+    private static getAmmoItem(item: ITemplateItem, itemHelper: ItemHelper): ITemplateItem
+    {
+        if (itemHelper.isOfBaseclass(item._id, BaseClasses.AMMO_BOX)) {
+            // Get the cartridge tpl found inside ammo box
+            const cartridgeTplInBox = item._props.StackSlots[0]._props.filters[0].Filter[0];
+            // Look up cartridge tpl in db
+            const ammoItemDb = itemHelper.getItem(cartridgeTplInBox);
+            return ammoItemDb[0] ? ammoItemDb[1] : undefined;
+        }
+        // Plain ammo
+        return item;
     }
 }
 
