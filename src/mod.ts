@@ -76,7 +76,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         "shoulder_r"
     ]
 
-    public preSptLoad(container: DependencyContainer): void
+    public preSptLoad(container: DependencyContainer): void 
     {
         const preSptModLoader: PreSptModLoader = container.resolve<PreSptModLoader>("PreSptModLoader");
         const logger = container.resolve<ILogger>("WinstonLogger");
@@ -100,7 +100,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
     public async postSptLoadAsync(container: DependencyContainer): Promise<void>
     {
         container.resolve<PresetController>("PresetController").initialize();
-
+        
         await ItemValuation.delay(1500);
 
         ItemValuation.container = container;
@@ -115,22 +115,9 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         }
     }
 
-    private static delay(ms: number): Promise<void>
+    private static delay(ms: number): Promise<void> 
     {
         return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    private static getAmmoItem(item: ITemplateItem, itemHelper: ItemHelper): ITemplateItem
-    {
-        if (itemHelper.isOfBaseclass(item._id, BaseClasses.AMMO_BOX)) {
-            // Get the cartridge tpl found inside ammo box
-            const cartridgeTplInBox = item._props.StackSlots[0]._props.filters[0].Filter[0];
-            // Look up cartridge tpl in db
-            const ammoItemDb = itemHelper.getItem(cartridgeTplInBox);
-            return ammoItemDb[0] ? ammoItemDb[1] : undefined;
-        }
-        // Plain ammo
-        return item;
     }
 
     static async setPriceColouration(firstUpdate = false): Promise<boolean>
@@ -171,7 +158,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
             {
                 if (itemHelper.isOfBaseclass(item, baseClass))
                 {
-                    if (price > itemHandbookPrice * ragfairConfig.dynamic.unreasonableModPrices[baseClass].handbookPriceOverMultiplier)
+                    if (price > itemHandbookPrice * ragfairConfig.dynamic.unreasonableModPrices[baseClass].handbookPriceOverMultiplier) 
                     {
                         price = itemHandbookPrice * ragfairConfig.dynamic.unreasonableModPrices[baseClass].newPriceHandbookMultiplier;
                     }
@@ -201,7 +188,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
                 newBackgroundColour = ItemValuation.getWeaponColour(price, validFleaItem);
                 descriptionPrice = price;
                 addDescription = true;
-            }
+            } 
             else if (itemHelper.isOfBaseclasses(item, [BaseClasses.AMMO, BaseClasses.AMMO_BOX]))
             {
                 let ammoItem = ItemValuation.getAmmoItem(itemTable[item], itemHelper);
@@ -209,13 +196,13 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
                 newBackgroundColour = ItemValuation.getAmmoColour(penetration, validFleaItem);
                 descriptionPrice = price;
                 addDescription = true;
-            }
+            } 
             else if (itemHelper.isOfBaseclass(item, BaseClasses.KEY))
             {
                 newBackgroundColour = ItemValuation.getKeyColour(price, validFleaItem);
                 descriptionPrice = price;
                 addDescription = true;
-            }
+            } 
             else if (itemHelper.isOfBaseclasses(item, [BaseClasses.ARMORED_EQUIPMENT, BaseClasses.VEST]))
             {
                 if (itemTable[item]._props.armorClass == 0)
@@ -266,7 +253,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
                 perSlotDescription = true;
             }
 
-            if (addDescription)
+            if (addDescription) 
             {
                 ItemValuation.addPriceToLocales(descriptionPrice, validFleaItem, item, perSlotDescription, traderPriceInfo);
             }
@@ -291,8 +278,8 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         const itemHelper = ItemValuation.container.resolve<ItemHelper>("ItemHelper");
         const randomUtil = ItemValuation.container.resolve<RandomUtil>("RandomUtil");
         const presetHelper = ItemValuation.container.resolve<PresetHelper>("PresetHelper");
-
-        if (ItemValuation.highestTraderPriceItems[itemTpl] != undefined)
+        
+        if (ItemValuation.highestTraderPriceItems[itemTpl] != undefined) 
         {
             return ItemValuation.highestTraderPriceItems[itemTpl];
         }
@@ -304,11 +291,11 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
                 traderName: ""
             }
         }
-
+        
         const preset = presetHelper.getDefaultPreset(itemTpl);
 
         // Find highest trader price for item
-        for (const traderName in Traders)
+        for (const traderName in Traders) 
         {
             // Get trader and check buy category allows tpl
             const traderBase = databaseService.getTrader(Traders[traderName]).base;
@@ -336,7 +323,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
             );
 
             // Price from this trader is higher than highest found, update
-            if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice)
+            if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice) 
             {
                 ItemValuation.highestTraderPriceItems[itemTpl].traderPrice = priceTraderBuysItemAt;
                 ItemValuation.highestTraderPriceItems[itemTpl].traderName = traderBase.nickname;
@@ -381,7 +368,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         );
 
         // Price from this trader is higher than highest found, update
-        if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice)
+        if (priceTraderBuysItemAt > ItemValuation.highestTraderPriceItems[itemTpl].traderPrice) 
         {
             ItemValuation.highestTraderPriceItems[itemTpl].traderPrice = priceTraderBuysItemAt;
             ItemValuation.highestTraderPriceItems[itemTpl].traderName = traderBase.nickname;
@@ -417,7 +404,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         if (ItemValuation.modConfig.colourFleaBannedArmour && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
         if (!ItemValuation.modConfig.colourArmours) return "";
 
-
+        
         if (ItemValuation.realism)
         {
             if (armorClass <= 1) return ItemValuation.modConfig.badColour;
@@ -434,7 +421,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         if (armorClass <= ItemValuation.modConfig.veryGoodArmorMaxPlates) return ItemValuation.modConfig.veryGoodColour;
         return ItemValuation.modConfig.exceptionalColour;
     }
-
+    
     private static getWeaponColour(price: number, availableOnFlea: boolean): string
     {
         if (ItemValuation.modConfig.colourFleaBannedWeapons && !availableOnFlea) return ItemValuation.modConfig.fleaBannedColour;
@@ -468,16 +455,16 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         if (pen <= ItemValuation.modConfig.veryGoodAmmoMaxPen) return ItemValuation.modConfig.veryGoodColour;
         return ItemValuation.modConfig.exceptionalColour;
     }
-
+    
     private static addPriceToLocales(price: number, availableOnFlea: boolean, itemID: string, perSlotDescription = false, traderInfo: TraderPriceTableDetails): void
     {
         const itemHelper = ItemValuation.container.resolve<ItemHelper>("ItemHelper");
         for (const locale in ItemValuation.localeTable)
         {
             const priceType = perSlotDescription ? "Per Slot:" : "Total:"
-            const originalDescription = ItemValuation.originalLocaleTable[locale][`${itemID} Description`];
-            const newDescription =
-                ItemValuation.modConfig.useTraderPriceColours && traderInfo.traderPrice > 0
+            const originalDescription = ItemValuation.originalLocaleTable[locale][`${itemID} Description`]; 
+            const newDescription = 
+                ItemValuation.modConfig.useTraderPriceColours && traderInfo.traderPrice > 0 
                     ? `${priceType} ${ItemValuation.formatToRoubles(price)} @ ${traderInfo.traderName}\n${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n ${originalDescription}`
                     : `${priceType} ${ItemValuation.formatToRoubles(price)} @ Flea ${traderInfo ? `\nTotal: ${ItemValuation.formatToRoubles(traderInfo.traderPrice)} @ ${traderInfo.traderName}` : ""}\n${availableOnFlea ? "<color=#17751b>Not Flea Banned</color>" : "<color=#751717>Flea Banned</color>"}\n\n ${originalDescription}`;
 
@@ -509,7 +496,7 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         }
     }
 
-    private static formatToRoubles(amount: number): string
+    private static formatToRoubles(amount: number): string 
     {
         return new Intl.NumberFormat("ru-RU", {
             style: "currency",
@@ -519,25 +506,25 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
         }).format(amount);
     }
 
-    private static isColourConverterInstalled(): boolean
+    private static isColourConverterInstalled(): boolean 
     {
         const pluginName = "rairai.colorconverterapi.dll";
         // Fails if there's no ./BepInEx/plugins/ folder
-        try
+        try 
         {
             const pluginList = ItemValuation.fs.readdirSync("./BepInEx/plugins").map(plugin => plugin.toLowerCase());
             ItemValuation.colorConverter = pluginList.includes(pluginName);
             return ItemValuation.colorConverter;
         }
-        catch
+        catch 
         {
             return false;
         }
     }
 
-    private static getMinMaxArmorPlateClass(platePool: ITemplateItem[]): MinMax
+    private static getMinMaxArmorPlateClass(platePool: ITemplateItem[]): MinMax 
     {
-        platePool.sort((x, y) =>
+        platePool.sort((x, y) => 
         {
             if (x._props.armorClass < y._props.armorClass) return -1;
             if (x._props.armorClass > y._props.armorClass) return 1;
@@ -548,6 +535,19 @@ class ItemValuation implements IPreSptLoadMod, IPostSptLoadModAsync
             min: Number(platePool[0]._props.armorClass),
             max: Number(platePool[platePool.length - 1]._props.armorClass)
         };
+    }
+
+    private static getAmmoItem(item: ITemplateItem, itemHelper: ItemHelper): ITemplateItem
+    {
+        if (itemHelper.isOfBaseclass(item._id, BaseClasses.AMMO_BOX)) {
+            // Get the cartridge tpl found inside ammo box
+            const cartridgeTplInBox = item._props.StackSlots[0]._props.filters[0].Filter[0];
+            // Look up cartridge tpl in db
+            const ammoItemDb = itemHelper.getItem(cartridgeTplInBox);
+            return ammoItemDb[0] ? ammoItemDb[1] : undefined;
+        }
+        // Plain ammo
+        return item;
     }
 }
 
@@ -589,7 +589,7 @@ interface Config
     fairAmmoMaxPen: number,
     goodAmmoMaxPen: number,
     veryGoodAmmoMaxPen: number,
-
+    
     colourWeapons: boolean,
     colourFleaBannedWeapons: boolean,
     badWeaponMaxValue: number,
